@@ -43,4 +43,53 @@ params:
     iconHeight: 35
 
   homeInfoParams:
-    Title: "Hi there 
+    Title: "Hi there 👋"
+    Content: >
+      I am Jay, a graduate student at the **Tsinghua Neural Engineering Lab**,
+      working at the intersection of brain-computer interfaces and clinical neuroscience.
+
+
+      I built **Cortix** — a multimodal neural digital twin platform that unifies
+      cortical surfaces, intracranial EEG/SEEG, CT coregistration, and source imaging
+      into a single interactive 3-D canvas.
+      [→ Try the live demo](https://jlei61.github.io/Cortix-DEMO/)
+
+  socialIcons:
+    - name: twitter
+      url: "https://twitter.com/JayLei61"
+    - name: github
+      url: "https://github.com/Jlei61"
+
+  cover:
+    hidden: true
+    hiddenInList: true
+    hiddenInSingle: true
+
+  fuseOpts:
+    isCaseSensitive: false
+    shouldSort: true
+    location: 0
+    distance: 1000
+    threshold: 0.4
+    minMatchCharLength: 0
+    keys: ["title", "permalink", "summary", "content"]
+
+menu:
+  main:
+    - identifier: categories
+      name: Categories
+      url: /categories/
+      weight: 10
+    - identifier: tags
+      name: Tags
+      url: /tags/
+      weight: 20
+    - identifier: cortix
+      name: "⚡ Cortix Demo"
+      url: https://jlei61.github.io/Cortix-DEMO/
+      weight: 30
+
+pygmentsUseClasses: true
+markup:
+  highlight:
+    noClasses: false
