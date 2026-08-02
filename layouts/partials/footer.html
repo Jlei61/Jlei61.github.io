@@ -1,11 +1,11 @@
 <footer class="footer">
-    <span>&copy; {{ now.Year }} <a href="{{ .Site.BaseURL }}">Jay Lei</a></span>
+    <span>&copy; {{ now.Year }} <a href="{{ .Site.Home.Permalink }}">Jay Lei</a></span>
     <span>
-        &middot; Powered by
+        &middot; {{ if eq .Lang "zh" }}由{{ else }}Powered by{{ end }}
         <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &amp;
         <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
     </span>
     <span>
-        &middot; <a href="https://jlei61.github.io/Cortix-DEMO/" target="_blank" rel="noopener">⚡ Cortix Demo</a>
+        &middot; <a href="https://jlei61.github.io/Cortix-DEMO/" target="_blank" rel="noopener">⚡ {{ if eq .Lang "zh" }}Cortrix 演示{{ else }}Cortrix Demo{{ end }}</a>
     </span>
 </footer>
