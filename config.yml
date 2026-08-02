@@ -3,6 +3,8 @@ title: Jay Lei
 paginate: 5
 theme: PaperMod
 
+defaultContentLanguage: en
+defaultContentLanguageInSubdir: false
 enableRobotsTXT: true
 buildDrafts: false
 buildFuture: false
@@ -15,13 +17,13 @@ minify:
 params:
   env: production
   title: Jay Lei
-  description: "Personal site of Jay Lei — neural engineering researcher and builder of Cortix, a multimodal neural digital twin platform for clinical neuroscience."
-  keywords: [Neural Engineering, Brain, EEG, SEEG, Cortix, Digital Twin, BCI, Neuroscience, Tsinghua]
+  description: "Personal site of Jay Lei — neural engineering researcher and builder of Cortrix, a multimodal workspace for clinical neuroscience research."
+  keywords: [Neural Engineering, Brain, EEG, SEEG, Cortrix, Multimodal Neuroscience, BCI, Tsinghua]
   author: Jay Lei
   DateFormat: "January 2, 2006"
   defaultTheme: auto
   disableThemeToggle: false
-
+  displayFullLangName: false
   ShowReadingTime: true
   ShowShareButtons: true
   ShowPostNavLinks: true
@@ -41,18 +43,6 @@ params:
   label:
     text: "Jay Lei"
     iconHeight: 35
-
-  homeInfoParams:
-    Title: "Hi there 👋"
-    Content: >
-      I am Jay, a graduate student at the **Tsinghua Neural Engineering Lab**,
-      working at the intersection of brain-computer interfaces and clinical neuroscience.
-
-
-      I built **Cortix** — a multimodal neural digital twin platform that unifies
-      cortical surfaces, intracranial EEG/SEEG, CT coregistration, and source imaging
-      into a single interactive 3-D canvas.
-      [→ Try the live demo](https://jlei61.github.io/Cortix-DEMO/)
 
   socialIcons:
     - name: twitter
@@ -74,20 +64,69 @@ params:
     minMatchCharLength: 0
     keys: ["title", "permalink", "summary", "content"]
 
-menu:
-  main:
-    - identifier: categories
-      name: Categories
-      url: /categories/
-      weight: 10
-    - identifier: tags
-      name: Tags
-      url: /tags/
-      weight: 20
-    - identifier: cortix
-      name: "⚡ Cortix Demo"
-      url: https://jlei61.github.io/Cortix-DEMO/
-      weight: 30
+languages:
+  en:
+    languageName: EN
+    languageCode: en-US
+    weight: 1
+    params:
+      languageAltTitle: "Read in English"
+      homeInfoParams:
+        Title: "Hi, I’m Jay."
+        Content: >
+          I am a graduate student at the **Tsinghua Neural Engineering Lab**, working
+          where brain-computer interfaces meet clinical neuroscience.
+
+
+          I build **Cortrix**, a multimodal workspace for inspecting cortical surfaces,
+          intracranial recordings, CT–MRI registration, and source-imaging results in
+          one interactive 3-D scene.
+          [Read why I built it →](/projects/cortrix/)
+    menu:
+      main:
+        - identifier: categories
+          name: Categories
+          url: /categories/
+          weight: 10
+        - identifier: tags
+          name: Tags
+          url: /tags/
+          weight: 20
+        - identifier: cortrix
+          name: "⚡ Cortrix Demo"
+          url: https://jlei61.github.io/Cortix-DEMO/
+          weight: 30
+  zh:
+    languageName: 中文
+    languageCode: zh-CN
+    weight: 2
+    params:
+      languageAltTitle: "切换至中文"
+      DateFormat: "2006年1月2日"
+      ShowWordCount: false
+      homeInfoParams:
+        Title: "你好，我是 Jay。"
+        Content: >
+          我是**清华大学神经工程实验室**的研究生，关注脑机接口与临床神经科学的交叉问题。
+
+
+          我正在开发 **Cortrix**：一个把皮层表面、颅内电生理、CT–MRI 配准和源成像结果放进
+          同一交互式三维场景的多模态研究工作台。
+          [为什么要做 Cortrix →](/zh/projects/cortrix/)
+    menu:
+      main:
+        - identifier: categories
+          name: 分类
+          url: /categories/
+          weight: 10
+        - identifier: tags
+          name: 标签
+          url: /tags/
+          weight: 20
+        - identifier: cortrix
+          name: "⚡ Cortrix 演示"
+          url: https://jlei61.github.io/Cortix-DEMO/
+          weight: 30
 
 pygmentsUseClasses: true
 markup:
