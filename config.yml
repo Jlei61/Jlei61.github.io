@@ -72,16 +72,17 @@ languages:
     params:
       languageAltTitle: "Read in English"
       homeInfoParams:
-        Title: "Hi, I’m Jay."
-        Content: >
-          I am a graduate student at the **Tsinghua Neural Engineering Lab**, working
-          where brain-computer interfaces meet clinical neuroscience.
+        Title: "About Me"
+        Content: |
+          I work in computational neuroscience and neural engineering at the **Tsinghua Neural Engineering Lab**. My research connects three scales:
 
+          **Science.** I ask how limited and biased neural observations can reveal the dynamical structure and mechanistic organisation of neural population activity, including epilepsy, movement and value-based decision-making.
 
-          I build **Cortrix**, a multimodal workspace for inspecting cortical surfaces,
-          intracranial recordings, CT–MRI registration, and source-imaging results in
-          one interactive 3-D scene.
-          [Read why I built it →](/projects/cortrix/)
+          **Engineering.** I integrate MRI, CT, DWI, EEG, SEEG and ECoG within a shared individualised brain space, with the longer-term goal of supporting virtual interventions such as stimulation, resection and tract disconnection.
+
+          **Computation.** I combine neural dynamical equations, structural priors and machine learning so that models can learn missing structure from data while making their uncertainty and scope explicit.
+
+          [Read more about how I approach research →](/about/research/)
     menu:
       main:
         - identifier: categories
@@ -105,14 +106,17 @@ languages:
       DateFormat: "2006年1月2日"
       ShowWordCount: false
       homeInfoParams:
-        Title: "你好，我是 Jay。"
-        Content: >
-          我是**清华大学神经工程实验室**的研究生，关注脑机接口与临床神经科学的交叉问题。
+        Title: "关于我"
+        Content: |
+          我在**清华大学神经工程实验室**从事计算神经科学与神经工程研究。我的工作围绕三个相互连接的尺度展开：
 
+          **科学上，** 我关注如何从有限、带偏的神经观测中，恢复神经群体活动背后的动力学结构与机制解释，例如癫痫、运动和价值决策。
 
-          我正在开发 **Cortrix**：一个把皮层表面、颅内电生理、CT–MRI 配准和源成像结果放进
-          同一交互式三维场景的多模态研究工作台。
-          [为什么要做 Cortrix →](/zh/projects/cortrix/)
+          **工程上，** 我尝试将 MRI、CT、DWI、EEG、SEEG 和 ECoG 等多模态信息整合进统一的个体化脑空间，并进一步支持刺激、切除和纤维离断等虚拟干预。
+
+          **计算上，** 我研究如何把神经动力学方程、结构先验与机器学习结合，使模型既能从数据中学习未知结构，也能清楚表达自身的不确定性和适用边界。
+
+          [进一步了解我的研究思路 →](/zh/about/research/)
     menu:
       main:
         - identifier: categories
