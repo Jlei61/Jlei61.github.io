@@ -20,7 +20,7 @@ SBI offers a bridge between mechanistic modelling and data analysis. The researc
 
 A posterior that performs well on its own simulated data can therefore become too narrow, displaced and scientifically miscalibrated when it meets a real system—or merely a more complete generator.
 
-![Neural parameter inference under model misspecification](/images/neural-parameter-inference-model-misspecification.png "Figure 1. Neural parameter inference under model misspecification. The real neural system and fitted simulator can differ in dynamical structure, observation scale and noise, even when both produce similar measurements.")
+![Neural parameter inference under model misspecification](/images/neural-parameter-inference-model-misspecification.png "Figure 1. Neural parameter inference under model misspecification. The real neural system and fitted simulator can differ in dynamical structure, observation scale and noise, even when both produce similar measurements. Generated with GPT Image 2.")
 
 ## 1. Structural misspecification in neural parameter inversion
 

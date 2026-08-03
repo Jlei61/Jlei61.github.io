@@ -20,7 +20,7 @@ ShowBreadCrumbs: false
 
 一个在自身模拟数据上表现良好的后验，到了真实系统或更完整的生成模型中，仍可能给出过窄、偏移并且缺少科学覆盖率的参数区间。
 
-![模型失配条件下的神经参数推断](/images/neural-parameter-inference-model-misspecification.png "图 1｜模型失配条件下的神经参数推断。真实神经系统与拟合模拟器可能在动力学结构、观测尺度和噪声上存在差异，即使二者能够产生相似的测量结果。")
+![模型失配条件下的神经参数推断](/images/neural-parameter-inference-model-misspecification.png "图 1｜模型失配条件下的神经参数推断。真实神经系统与拟合模拟器可能在动力学结构、观测尺度和噪声上存在差异，即使二者能够产生相似的测量结果。由 GPT Image 2 生成。")
 
 ## 1. 神经参数反演中的结构失配
 
