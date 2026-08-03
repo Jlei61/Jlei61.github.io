@@ -16,6 +16,7 @@ minify:
 
 params:
   env: production
+  mainSections: [posts, projects]
   title: Jay Lei
   description: "Personal site of Jay Lei — neural engineering researcher and builder of Cortrix, a multimodal workspace for clinical neuroscience research."
   keywords: [Neural Engineering, Brain, EEG, SEEG, Cortrix, Multimodal Neuroscience, BCI, Tsinghua]
