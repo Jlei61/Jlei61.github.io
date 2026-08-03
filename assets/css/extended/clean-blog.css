@@ -85,6 +85,13 @@
     text-align: left;
 }
 
+.post-single .post-content figure.article-video video {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #05070b;
+}
+
 .post-single .post-content blockquote {
     margin: 28px 0;
     padding: 0 0 0 18px;

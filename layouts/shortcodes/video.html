@@ -1,0 +1,13 @@
+{{- $src := .Get "src" -}}
+{{- $caption := .Get "caption" -}}
+{{- $label := .Get "label" | default $caption -}}
+{{- $fallback := .Get "fallback" | default "Open video" -}}
+<figure class="article-video">
+  <video controls playsinline preload="metadata"{{ with $label }} aria-label="{{ . }}"{{ end }}>
+    <source src="{{ $src | safeURL }}" type="video/mp4">
+    <a href="{{ $src | safeURL }}">{{ $fallback }}</a>
+  </video>
+  {{- with $caption }}
+  <figcaption>{{ . | markdownify }}</figcaption>
+  {{- end }}
+</figure>
