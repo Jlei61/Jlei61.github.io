@@ -1,23 +1,17 @@
 ---
-title: "When a 90% credible interval covers only 55%"
+title: "Simulation-Based Inference in Neural Dynamics"
 date: 2026-08-03
 slug: sbi-neural-dynamics
 translationKey: sbi-neural-dynamics
-layout: sbi-essay
-heroKicker: "NEURAL DYNAMICS · SBI · FIELD NOTE 02"
-heroDeck: "Simulation-based inference can produce an excellent posterior for a given model. But does that posterior remain mechanistically meaningful when the real neural system contains dynamics the model omits?"
-heroFigureLabel: "A nominal 90% credible interval achieves only 55% scientific coverage under structural misspecification"
-nominalLabel: "Nominal credibility"
-observedLabel: "Scientific coverage"
-recommendedReading: "24 min read"
-thesis: "Within-model calibration asks whether an inference network has learned its simulator. Scientific coverage asks whether its intervals contain the mechanism defined by the data-generating system. Those are not interchangeable guarantees."
+math: true
+estimatedReadingTime: "24 min"
 tags: ["SBI", "Neural Dynamics", "Bayesian Inference", "Model Misspecification", "Epileptor"]
 categories: ["Research Notes"]
-description: "What a 90% credible interval that covers only 55% reveals about structural misspecification, scientific coverage and the future of simulation-based inference in neural dynamics."
 showToc: true
-tocopen: true
-hideMeta: true
-disableShare: false
+tocopen: false
+hideMeta: false
+disableShare: true
+ShowBreadCrumbs: false
 ---
 
 In many neuroscience problems, we can write down a candidate dynamical model and simulate EEG, SEEG, fMRI or neuronal activity for a chosen set of parameters. What we cannot readily evaluate is the probability of those observations under the parameters. **Simulation-based inference** (SBI) was designed for precisely this setting.
@@ -25,6 +19,8 @@ In many neuroscience problems, we can write down a candidate dynamical model and
 SBI offers a bridge between mechanistic modelling and data analysis. The researcher specifies a simulator and parameter prior; a machine-learning model then uses many simulations to learn a posterior over parameters from observations. The appeal is obvious. The difficulty is that neural data come from a high-dimensional, nonlinear and multiscale system, while the simulator used for inference usually preserves only a small part of that structure.
 
 A posterior that performs well on its own simulated data can therefore become too narrow, displaced and scientifically miscalibrated when it meets a real system—or merely a more complete generator.
+
+![Neural parameter inference under model misspecification](/images/neural-parameter-inference-model-misspecification.png "Figure 1. Neural parameter inference under model misspecification. The real neural system and fitted simulator can differ in dynamical structure, observation scale and noise, even when both produce similar measurements.")
 
 ## 1. Structural misspecification in neural parameter inversion
 

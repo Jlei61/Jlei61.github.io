@@ -1,0 +1,24 @@
+{{- $scratch := newScratch -}}
+
+{{- if not .Date.IsZero -}}
+  {{- $date := .Date | time.Format (default "January 2, 2006" site.Params.DateFormat) -}}
+  {{- $label := cond (eq .Lang "zh") "日期" "Date" -}}
+  {{- $scratch.Add "meta" (slice (printf "%s: <span title='%s'>%s</span>" $label .Date $date)) -}}
+{{- end -}}
+
+{{- if (.Param "ShowReadingTime") -}}
+  {{- $reading := .Params.estimatedReadingTime | default (i18n "read_time" .ReadingTime) | default (printf "%d min" .ReadingTime) -}}
+  {{- $label := cond (eq .Lang "zh") "预计阅读时间" "Estimated Reading Time" -}}
+  {{- $scratch.Add "meta" (slice (printf "%s: %s" $label $reading)) -}}
+{{- end -}}
+
+{{- if not (.Param "hideAuthor") -}}
+  {{- with (partial "author.html" .) -}}
+    {{- $label := cond (eq $.Lang "zh") "作者" "Author" -}}
+    {{- $scratch.Add "meta" (slice (printf "%s: %s" $label .)) -}}
+  {{- end -}}
+{{- end -}}
+
+{{- with ($scratch.Get "meta") -}}
+  {{- delimit . "&nbsp;|&nbsp;" | safeHTML -}}
+{{- end -}}

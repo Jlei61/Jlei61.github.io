@@ -1,0 +1,8 @@
+<figure>
+  <a href="{{ .Destination | safeURL }}" target="_blank" rel="noopener">
+    <img loading="lazy" src="{{ .Destination | safeURL }}" alt="{{ .Text }}"{{ with .Title }} title="{{ . }}"{{ end }}>
+  </a>
+  {{- with .Title }}
+  <figcaption>{{ . }}</figcaption>
+  {{- end }}
+</figure>

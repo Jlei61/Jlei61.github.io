@@ -1,23 +1,17 @@
 ---
-title: "当 90% 可信区间只覆盖 55%"
+title: "SBI 在神经动力学中的应用"
 date: 2026-08-03
 slug: sbi-neural-dynamics
 translationKey: sbi-neural-dynamics
-layout: sbi-essay
-heroKicker: "NEURAL DYNAMICS · SBI · FIELD NOTE 02"
-heroDeck: "仿真推断可以在给定模型内给出漂亮的后验；但当真实神经系统包含模型没有的动力学时，这个后验还代表机制层面的可信度吗？"
-heroFigureLabel: "名义 90% 的可信区间在结构失配条件下实际只覆盖 55%"
-nominalLabel: "名义可信度"
-observedLabel: "实际科学覆盖率"
-recommendedReading: "推荐阅读 24 分钟"
-thesis: "模型内校准回答的是推断器有没有学对模拟器；科学覆盖率回答的才是这个区间能不能覆盖真实生成系统中的机制参数。二者不能互换。"
+math: true
+estimatedReadingTime: "24 分钟"
 tags: ["SBI", "神经动力学", "贝叶斯推断", "模型失配", "Epileptor"]
 categories: ["研究笔记"]
-description: "从 90% 可信区间实际只覆盖 55% 出发，讨论 simulation-based inference 在神经动力学中的结构失配、科学覆盖率与可能的结构适配路线。"
 showToc: true
-tocopen: true
-hideMeta: true
-disableShare: false
+tocopen: false
+hideMeta: false
+disableShare: true
+ShowBreadCrumbs: false
 ---
 
 在许多神经科学问题中，我们能够写出一个候选动力学模型，也能够在给定参数后模拟 EEG、SEEG、fMRI 或神经元活动，却很难直接计算“这组观测在给定参数下出现的概率”。**仿真推断**（simulation-based inference, SBI）正是为这类问题设计的。
@@ -25,6 +19,8 @@ disableShare: false
 它提供了一条连接机制模型与数据分析的路径：研究者写出模拟器和参数先验，机器学习模型从大量模拟数据中学习如何由观测反推出参数后验。这套思路很有吸引力。真正困难的地方在于，神经数据来自一个高维、非线性、多时间尺度的系统，而用于推断的模拟器通常只保留其中很小一部分结构。
 
 一个在自身模拟数据上表现良好的后验，到了真实系统或更完整的生成模型中，仍可能给出过窄、偏移并且缺少科学覆盖率的参数区间。
+
+![模型失配条件下的神经参数推断](/images/neural-parameter-inference-model-misspecification.png "图 1｜模型失配条件下的神经参数推断。真实神经系统与拟合模拟器可能在动力学结构、观测尺度和噪声上存在差异，即使二者能够产生相似的测量结果。")
 
 ## 1. 神经参数反演中的结构失配
 
