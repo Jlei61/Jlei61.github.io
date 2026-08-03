@@ -1,10 +1,10 @@
 ---
-title: "SBI 在神经动力学中的应用"
+title: "神经模拟推断中的结构失配"
 date: 2026-08-03
 slug: sbi-neural-dynamics
 translationKey: sbi-neural-dynamics
 math: true
-estimatedReadingTime: "24 分钟"
+estimatedReadingTime: "20 分钟"
 tags: ["SBI", "神经动力学", "贝叶斯推断", "模型失配", "Epileptor"]
 categories: ["研究笔记"]
 showToc: true
@@ -14,15 +14,17 @@ disableShare: true
 ShowBreadCrumbs: false
 ---
 
-在许多神经科学问题中，我们能够写出一个候选动力学模型，也能够在给定参数后模拟 EEG、SEEG、fMRI 或神经元活动，却很难直接计算“这组观测在给定参数下出现的概率”。**仿真推断**（simulation-based inference, SBI）正是为这类问题设计的。
+Simulation-based inference（SBI）处理的是一类常见的科学反演问题：模型可以运行并生成数据，但其似然函数很难直接计算。
 
-它提供了一条连接机制模型与数据分析的路径：研究者写出模拟器和参数先验，机器学习模型从大量模拟数据中学习如何由观测反推出参数后验。这套思路很有吸引力。真正困难的地方在于，神经数据来自一个高维、非线性、多时间尺度的系统，而用于推断的模拟器通常只保留其中很小一部分结构。
+这类问题在神经科学中随处可见。我们可以给定离子通道、电导、突触、连接或神经质量模型参数，再模拟膜电位、群体活动、EEG、SEEG 或 fMRI；反方向的参数推断则困难得多。
 
-一个在自身模拟数据上表现良好的后验，到了真实系统或更完整的生成模型中，仍可能给出过窄、偏移并且缺少科学覆盖率的参数区间。
+SBI 为这类任务提供了一条清晰的计算路径：研究者写出动力学模型和参数先验，神经网络从大量模拟数据中学习参数后验。它把机制模型中的专家知识与现代机器学习的摊销推断能力放进同一个框架。[Cranmer、Brehmer 和 Louppe 的综述](https://www.pnas.org/doi/10.1073/pnas.1912789117)系统介绍了这一思路。
 
-![模型失配条件下的神经参数推断](/images/neural-parameter-inference-model-misspecification.png "图 1｜模型失配条件下的神经参数推断。真实神经系统与拟合模拟器可能在动力学结构、观测尺度和噪声上存在差异，即使二者能够产生相似的测量结果。由 GPT Image 2 生成。")
+真正棘手的一步出现在模拟器与真实系统之间。神经系统具有高维、非线性、多时间尺度的动力学，而实际推断通常依赖一个低维且计算可行的模拟器。此时，模型给出的参数不确定性究竟描述了什么，需要单独检验。
 
-## 1. 神经参数反演中的结构失配
+## 1. Simulation-based inference
+
+### 固定模拟器下的参数后验
 
 给定模拟器 {{< mi >}}M{{< /mi >}}，标准 SBI 从参数先验中采样：
 
@@ -38,7 +40,16 @@ x \sim p_M(x\mid\theta),
 q_\psi(\theta\mid x) \approx p_M(\theta\mid x).
 {{< /math >}}
 
-NPE、NLE、NRE，以及基于 flow matching 或 diffusion 的方法，都可以放在这个框架下理解。它们分别学习后验、似然、似然比，或用更灵活的生成模型表示后验分布。SBI 已被用于从膜电位、群体活动和行为数据中估计生物物理模型参数，也被视为连接机制建模与统计学习的重要工具。[相关综述与方法背景](https://www.pnas.org/doi/10.1073/pnas.1912789117)。
+训练数据由大量参数—观测对组成：
+
+{{< math >}}
+\mathcal D_{\rm sim}
+=\left\{(\theta_i,x_i)\right\}_{i=1}^{N}.
+{{< /math >}}
+
+NPE 直接学习后验，NLE 学习似然，NRE 学习似然比，FMPE 则使用连续 normalizing flow 和 flow matching 表示条件后验。它们的训练目标不同，但都围绕一个固定模拟器定义的贝叶斯问题展开。SBI 已成功用于单神经元和神经回路模型；[Gonçalves 等人的工作](https://elifesciences.org/articles/56261)使用 SNPE 从实验神经活动中识别与观测相容的生物物理参数。
+
+### 从模型参数到科学目标
 
 然而，真实反演问题通常包含两套不同的生成过程：
 
@@ -58,25 +69,49 @@ NPE、NLE、NRE，以及基于 flow matching 或 diffusion 的方法，都可以
 p_M(\theta\mid y),
 {{< /math >}}
 
-而科学问题通常关心
+而科学问题通常关心一个由生成系统定义的目标
 
 {{< math >}}
-p_G\!\left(g(\phi)\mid y\right),
+p_G\!\left(\phi_{\rm sci}\mid y\right),
+\qquad
+\phi_{\rm sci}=g(\phi).
 {{< /math >}}
 
-其中 {{< mi >}}g(\phi){{< /mi >}} 可以是兴奋性、慢恢复时间尺度、有效连接强度、分岔控制参数，或其他希望在不同模型之间保持共同含义的机制量。只有当模型结构、参数语义和观测过程足够一致时，这两个后验才能被直接联系起来。
+{{< mi >}}\phi_{\rm sci}{{< /mi >}} 可以表示神经兴奋性、慢恢复时间尺度、突触增益、有效连接，或系统到某个动力学边界的距离。连接两个后验需要一个跨模型映射：
 
-### 为什么神经数据尤其容易出现这一问题
+{{< math >}}
+\phi_{\rm sci}=g_M(\theta).
+{{< /math >}}
 
-神经系统中的参数退化非常常见。差异很大的离子通道密度、突触权重和连接组合，可以产生相似的放电模式或网络节律。经典神经回路研究已经展示，多组相距很远的参数能够生成近乎相同的功能输出。[深度密度估计在神经模型参数识别中的工作](https://elifesciences.org/articles/56261)也清楚呈现了这种多解性。
+这个映射表达模型参数在科学上的含义。模型删除状态变量、连接结构或关键时间尺度时，同一个参数名称也可能对应不同的有效机制。
+
+![模型失配条件下的神经参数推断](/images/neural-parameter-inference-model-misspecification.png "图 1｜神经参数反演中的两条生成链。左侧是高维真实系统、潜在脑动力学与 EEG、SEEG、fMRI 观测；右侧是低维拟合模拟器及其参数后验。两条链之间可能存在动力学结构、部分观测、跨尺度测量和噪声差异。由 GPT Image 2 生成。")
+
+### 神经数据带来的特殊困难
+
+神经系统中的参数退化非常常见。差异很大的离子通道密度、突触权重和连接组合，可以产生相似的放电模式或网络节律。[Prinz、Bucher 和 Marder 对幽门神经回路的经典研究](https://www.nature.com/articles/nn1352)展示了这种多参数—相似活动关系。
 
 有限观测进一步扩大了这种多对一关系。即使现代记录技术可以同时记录大量神经元，它们仍只覆盖真实神经回路的一小部分。近期研究表明，只观察部分神经元时，一个经过数据约束的替代网络可以很好地复现已观测单元的动力学，却形成虚假的吸引子结构，并对底层机制给出错误解释。[Qian 等人的 NeurIPS 2024 研究](https://proceedings.neurips.cc/paper_files/paper/2024/hash/7caf9d251b546bc78078b35b4a6f3b7e-Abstract-Conference.html)正是这一风险的直接例子。
 
-EEG、SEEG、MEG 和 fMRI 还包含各自的观测变换。头皮 EEG 经过体积传导形成空间混合信号；SEEG 只覆盖稀疏且由临床选择的局部区域；fMRI 通过缓慢、区域依赖的神经血管耦合观察神经活动。模拟器与数据之间的差异因此可能同时来自动力学结构、空间尺度、时间尺度和传感器模型。
+神经信号还经过模态特异的正问题：
+
+{{< math >}}
+y_k=O_k[z(t);\eta_k]+\epsilon_k.
+{{< /math >}}
+
+例如，EEG 与 fMRI 可以分别写成
+
+{{< math >}}
+y_{\rm EEG}=O_{\rm leadfield}[z(t)]+\epsilon_{\rm EEG},
+\qquad
+y_{\rm fMRI}=O_{\rm BOLD}[z(t)]+\epsilon_{\rm fMRI}.
+{{< /math >}}
+
+EEG 包含体积传导和空间混合，SEEG 只覆盖临床选择的局部区域，fMRI 则经过神经血管耦合和较慢的时间采样。动力学失配、观测算子失配和采样误差会同时进入参数反演。
 
 > 当拟合模型缺失真实系统中的一部分动力学时，剩余参数会怎样吸收这些缺失机制的影响？模型报告的不确定性，是否仍然覆盖我们真正关心的机制量？
 
-## 2. 现有 SBI 方法究竟适配了什么
+## 2. 现有方法适配了什么
 
 可以把完整推断过程拆成几个数学对象：
 
@@ -97,7 +132,7 @@ q_\psi(\theta\mid y).
 | 目标域校正 | 域映射 {{< mi >}}\mathcal T{{< /mi >}} | {{< mi >}}q_{\rm target}=\mathcal T(q_M){{< /mi >}} | RoPE、FRISBI、FMCPE | 少量带参数标签的真实或高保真数据 |
 | 模型结构适配 | 模型身份 {{< mi >}}m{{< /mi >}} | {{< mi >}}p(m,\theta_m\mid y){{< /mi >}} | multi-fidelity SBI、模型集合 | 候选模拟器或高保真预算 |
 
-### 2.1 在给定模拟器中学习和校验后验
+### 后验估计与模型内校验
 
 NPE、NLE 和 NRE 关注同一个核心目标：在给定模型 {{< mi >}}M{{< /mi >}} 的条件下，尽可能准确地恢复其后验。FMPE 使用连续 normalizing flow 和 flow matching 表示条件后验，提高复杂数据和高维参数下的扩展能力。[FMPE 原文](https://arxiv.org/abs/2305.17161)对这一点有完整描述。
 
@@ -109,7 +144,7 @@ SBC 和 TARP 属于这一层的校验工具。SBC 从同一个模型联合分布
 x^{(i)}\sim p_M(x\mid\theta^{(i)}),
 {{< /math >}}
 
-再检查生成参数在后验样本中的 rank 是否符合理论分布。TARP 则利用随机参考点估计生成式后验的 coverage。它们检验的是
+再检查生成参数在后验样本中的 rank 是否符合理论分布。[TARP](https://arxiv.org/abs/2302.03026) 则利用随机参考点构造 coverage test，用于评估高维生成式 posterior estimator。它们检验的是
 
 {{< math >}}
 q_\psi(\theta\mid x) \approx p_M(\theta\mid x).
@@ -117,7 +152,7 @@ q_\psi(\theta\mid x) \approx p_M(\theta\mid x).
 
 训练数据、测试数据和校准真值均来自同一个模拟器。模型结构改变后，需要另行定义跨模型的科学覆盖检验。换句话说，[SBC](https://arxiv.org/abs/1804.06788) 能证明推断算法是否忠实于模型，却不能独自证明模型是否忠实于真实系统。
 
-### 2.2 把模拟—真实差异写进观测模型
+### 模拟—真实观测误差
 
 RNPE 在模拟观测和真实观测之间引入显式 discrepancy model。一个简化形式是
 
@@ -138,7 +173,7 @@ Robust SNL 使用额外调整参数识别模型无法复现的 summary；RVNP �
 
 这种适配主要发生在观测空间。真实系统中的缺失机制若已经被模型参数吸收，模拟数据与真实数据之间可能只剩下很小的可见残差。此时，discrepancy model 很难仅根据观测差异判断变化来自真实参数，还是来自模型中被省略的状态变量。
 
-### 2.3 改变模型需要解释的数据特征
+### 稳健统计量与广义后验
 
 另一类方法重新选择推断所依据的信息。Robust-statistics SBI 会学习或选择对模型失配较稳定的 summary {{< mi >}}s_\omega(y){{< /mi >}}，并惩罚那些显著放大模拟—真实差异的统计量。[相关 NeurIPS 2023 工作](https://proceedings.neurips.cc/paper_files/paper/2023/hash/16c5b4102a6b6eb061e502ce6736ad8a-Abstract-Conference.html)沿着这一路线展开。
 
@@ -163,7 +198,7 @@ GBI-ACE 使用神经网络摊销估计这一代价，从而降低反复运行模
 
 因此，summary-level robustness、预测稳定性与机制参数恢复需要分别验证。被 summary 忽略的失配信息中，也可能恰好包含区分机制参数所需的信息。
 
-### 2.4 用真实域或高保真标签校正后验
+### 目标域后验校正
 
 RoPE、FRISBI 和 FMCPE 向训练过程加入了新的科学信息：少量真实或高保真参数—观测对。RoPE 使用校准集
 
@@ -178,7 +213,7 @@ FMCPE 先在大量模拟数据上训练普通 posterior estimator，再使用 fl
 
 这条路线在能够获得真实参数标签或可信高保真模拟器的场景中很有力量。机器人、受控工程实验和部分物理系统可以直接测量质量、摩擦或材料参数。神经机制参数通常缺少这样的成对真值：我们能收集更多 EEG 或 SEEG，却很难同时获得患者真实的慢恢复常数、神经元兴奋性或微观突触连接强度。
 
-### 2.5 从低保真模型迁移到高保真模型
+### 多保真模拟器
 
 Multi-fidelity SBI 假设存在一对具有相关结构的模拟器：
 
@@ -189,6 +224,8 @@ x_H\sim p_H(x_H\mid\theta_H).
 {{< /math >}}
 
 MF-NPE 先使用大量低成本模拟预训练后验估计器，再用有限高保真模拟进行迁移和修正。[相关工作](https://arxiv.org/html/2502.08416v2)已经在多区室神经元和较大规模脉冲网络上展示模拟效率优势，部分任务所需的高保真模拟量可减少多个数量级。
+
+[Multilevel neural SBI](https://arxiv.org/abs/2506.06087) 则把多层 Monte Carlo 思路引入 NPE 和 NLE，在固定计算预算下联合使用多个保真度层级。
 
 这种方法估计的是 {{< mi >}}p_H(\theta_H\mid y){{< /mi >}}。它依赖高低保真模型之间存在可迁移表示、可比较观测和一定程度的参数对应关系。高保真模拟器本身仍然需要接受真实数据、跨模态观测与干预响应的检验。
 
@@ -204,9 +241,35 @@ MF-NPE 先使用大量低成本模拟预训练后验估计器，再用有限高�
 
 我们的受控实验关注最后一个缺口：当没有真实参数校准集、拟合模型缺失部分动力学，而观测又不足以直接暴露这种结构差异时，模型内部的后验校准能否继续代表机制层面的可靠性。此前对 neural SBI misspecification 的系统研究已经发现，结构或分布失配可能显著破坏后验可靠性，现有缓解策略也没有在所有测试条件中统一消除失败。[相关系统研究](https://arxiv.org/abs/2209.01845)提供了更广泛的证据。
 
-## 3. 当 90% 区间只覆盖了 55%–59%
+## 3. 一个受控的结构失配实验
+
+### 两种不同的 coverage
 
 一个名义 90% 的后验可信区间包含一项可以通过重复实验检验的承诺：如果不断从同一生成过程采样数据并重新推断，真实参数应当大约在 90% 的实验中落入区间，只有约 10% 的实验会漏掉真值。
+
+设 {{< mi >}}C_{0.9}(y){{< /mi >}} 是观测 {{< mi >}}y{{< /mi >}} 对应的 90% 后验区间。在拟合模型自身的生成分布下，模型内覆盖率为
+
+{{< math >}}
+\mathrm{CB}_{\rm int}
+=\Pr_M\!\left[\theta\in C_{0.9}(X)\right],
+\quad
+\theta\sim p(\theta),\;X\sim p_M(X\mid\theta).
+{{< /math >}}
+
+科学覆盖率使用更完整的生成器：
+
+{{< math >}}
+\mathrm{CB}_{\rm sci}
+=\Pr_G\!\left[\phi_{\rm sci}\in C_{0.9}(Y)\right],
+\quad
+\phi\sim p_G(\phi),\;Y\sim p_G(Y\mid\phi).
+{{< /math >}}
+
+{{< mi >}}\mathrm{CB}_{\rm int}{{< /mi >}} 测量后验在 fitted simulator 内部的覆盖性质；{{< mi >}}\mathrm{CB}_{\rm sci}{{< /mi >}} 测量区间对 generator-defined scientific target 的覆盖性质。
+
+### 90% 区间覆盖了多少真值
+
+受控实验使用 2D Epileptor 作为 fitted simulator，使用包含更多状态变量的 6D Epileptor 作为生成器。两种模型共享参数 {{< mi >}}x_0{{< /mi >}}，因此可以直接检查 2D posterior 的区间是否覆盖 6D generator 中实际使用的 {{< mi >}}x_0{{< /mi >}}。
 
 在我们的受控实验中，RNPE 在 2D fitted simulator 内部取得了接近名义水平的覆盖率：
 
@@ -251,7 +314,7 @@ R_{\rm miss}
 =-0.35,\,-0.31.
 {{< /math >}}
 
-### 缺失动力学如何进入参数
+### 缺失动力学如何进入剩余参数
 
 这一结果可以用一个简单的慢—快系统理解。假设生成系统包含快变量 {{< mi >}}u{{< /mi >}} 和慢变量 {{< mi >}}v{{< /mi >}}：
 
@@ -306,11 +369,13 @@ D\!\left(P_G^y, P_{M,\widetilde x_0}^y\right).
 
 因此，一个后验区间所标注的“90%”，只在其对应的模型结构和联合分布中成立。结构发生变化后，这个数字必须围绕生成器定义的科学目标重新检验。
 
-## 4. 面向结构适配的四条路线
+> **本节小结。** 一个标注为 90% 的区间，应在生成系统的重复实验中覆盖约 90% 的科学目标。6D→2D 条件下，它只覆盖约 55%–59%，实际漏覆盖率达到名义水平的 4.1–4.5 倍。核心现象不是模型完全失去预测能力，而是后验宽度与结构误差脱节。
+
+## 4. 面向结构适配的几条路线
 
 模型结构进入误差来源以后，推断过程需要容纳更多可能的数据生成机制。近年的工作开始从模型族、多保真模拟、跨尺度观测与主动干预几个方向推进。这些路线仍面临计算和可识别性限制，却为神经 SBI 提供了比单一后验校正更宽的空间。
 
-### 4.1 让模型结构也进入后验
+### 让模型结构也进入后验
 
 最直接的扩展，是将固定模拟器 {{< mi >}}M{{< /mi >}} 改写为模型族：
 
@@ -344,11 +409,19 @@ p(\theta_m,m\mid y)\,d\theta_m.
 
 Multi-fidelity SBI 已沿这一方向迈出一步。天气和气候领域也长期使用具有不同参数化、分辨率与结构误差的模型集合，并通过多模型数据同化调整各模型对预测的贡献。[多模型 ensemble Kalman filter](https://arxiv.org/abs/2202.02272)提供了一个可借鉴的例子。
 
-模型族还可以从人工定义走向开放式生成。近期工作把可执行机制模型视为粒子，由大语言模型提出和修改候选程序，再按近似边际似然赋权。同期的 program-synthesis SBI 也让语言模型生成候选模拟器，再用 neural ratio estimation 比较模型证据和估计参数后验。[一种概率化 LLM 模型发现框架](https://arxiv.org/html/2602.18266v2)展示了这一方向。NPE-PFN 则尝试用预训练条件密度估计器减少每个候选模拟器重新选网络与调参的成本。[NPE-PFN 预印本](https://arxiv.org/html/2504.17660v2)提供了相应工具。
+模型族还可以从人工定义走向开放式生成。[ModelSMC](https://arxiv.org/abs/2602.18266) 把可执行机制模型表示为带权粒子，由大语言模型提出和修改候选程序，再按似然标准更新权重：
+
+{{< math >}}
+m_k'\sim q_{\rm LLM}(m\mid m_k,\mathcal D),
+\qquad
+w_k\propto p(\mathcal D\mid m_k).
+{{< /math >}}
+
+[Program-synthesis SBI](https://arxiv.org/abs/2607.17540) 采用相近思路，让 LLM 提供模拟器空间中的候选结构，再用 neural simulation-based inference 联合完成模型选择与参数估计。NPE-PFN 则尝试用预训练条件密度估计器减少每个候选模拟器重新选网络与调参的成本。[NPE-PFN 预印本](https://arxiv.org/abs/2504.17660)提供了相应工具。
 
 关键难点仍在模型空间本身。候选集合需要覆盖真正影响科学目标的结构差异；不同模型中的参数需要建立可信的共享语义；边际似然还会受到模型先验、参数先验和程序复杂度的显著影响。对近期神经问题而言，由专家定义、只包含少数关键机制分歧的模型族，可能比完全开放的方程搜索更实际。
 
-### 4.2 让不同尺度的观测彼此校验
+### 让跨尺度观测彼此校验
 
 不同神经模态可以写成同一潜在系统在不同尺度上的投影：
 
@@ -362,7 +435,7 @@ y_k=O_k\!\left[z_{\ell(k)};\eta_k\right]+\epsilon_k.
 
 {{< mi >}}C_1{{< /mi >}} 和 {{< mi >}}C_2{{< /mi >}} 描述微观活动到宏观状态的 coarse-graining，{{< mi >}}O_k{{< /mi >}} 是每种模态独立的观测算子。SEEG、头皮 EEG 和 fMRI 分别观察局部电活动、空间混合电场以及经过神经血管耦合的慢尺度 BOLD 动力学。
 
-已有 multimodal DCM 工作使用共享神经状态方程和模态特异观测模型连接 EEG/MEG 与 fMRI，也有更近期的框架尝试整合部分观测的多尺度神经信号。[神经血管耦合 DCM 的比较研究](https://pmc.ncbi.nlm.nih.gov/articles/PMC7322559/)体现了显式观测模型的重要性。患者特异的 virtual brain twin 则把结构连接、SEEG、头皮 EEG 与刺激诱发活动纳入同一患者模型，用多种来源共同约束致痫网络。[癫痫刺激的 virtual brain twin](https://www.nature.com/articles/s43588-025-00841-6)是近期代表。
+已有 multimodal DCM 工作使用共享神经状态方程和模态特异观测模型连接 EEG/MEG 与 fMRI。[更近期的 multiscale DCM](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012655) 在虚拟实验中整合局部高分辨率信号与全局低分辨率信号。患者特异的 virtual brain twin 则把结构连接、SEEG、头皮 EEG 与刺激诱发活动纳入同一患者模型，用多种来源共同约束致痫网络。[癫痫刺激的 virtual brain twin](https://www.nature.com/articles/s43588-025-00841-6)是近期代表。
 
 对于第 {{< mi >}}k{{< /mi >}} 种观测，可以定义与数据相容的机制集合：
 
@@ -395,7 +468,7 @@ p(y_k\mid\phi,m)p(\phi,m\mid y_{-k})\,d\phi.
 
 跨尺度映射本身也可能成为新的失配来源。把多种特征直接拼接到一个编码器中，容易让 coarse-graining、体积传导和神经血管耦合的误差共同进入潜变量。地震 full-waveform inversion 的 coarse-to-fine 策略提供了一种组织思路：先用低频波形缩小高概率参数区域，再逐步加入更复杂的高频数据并更新 surrogate。[相关顺序式 surrogate 工作](https://academic.oup.com/gji/article/243/2/ggaf349/8248518)可作为方法参考。
 
-### 4.3 用干预打开被动观测看不到的差异
+### 用干预区分观测上相似的机制
 
 自发活动中，两个机制可能产生近似相同的观测：
 
@@ -412,6 +485,14 @@ p(y^{(a)}\mid\phi_2,m_2,a).
 {{< /math >}}
 
 干预的价值来自对系统动力学的定向激发。两个模型都可以解释静息功率谱，却可能对刺激后的传播方向、共振频率、恢复时间或发作阈值给出不同预测。
+
+对于多个实验条件，可以写成
+
+{{< math >}}
+p(\phi,m\mid y^{(1:A)},a^{(1:A)})
+\propto p(\phi,m)
+\prod_{j=1}^{A}p\!\left(y^{(j)}\mid\phi,m,a^{(j)}\right).
+{{< /math >}}
 
 Bayesian experimental design 可以选择最有助于区分参数和模型的实验条件：
 
@@ -436,7 +517,7 @@ D\!\left[p(Y\mid a,m_1),\ldots,p(Y\mid a,m_K)\right].
 
 此时，干预既用于缩小参数后验，也用于排除无法解释新响应的动力学结构。
 
-### 4.4 在证据有限时保留可行区域
+### 保留尚未被排除的机制区域
 
 模型族、多模态观测和干预数据加入以后，部分机制仍可能无法唯一确定。气候和海洋模型中的 history matching 提供了一种适合这种情况的表达方式：根据观测、模拟器误差和结构误差逐步排除明显不合理的参数区域，保留当前证据尚未排除的部分。
 
@@ -474,17 +555,35 @@ I_m(\theta_m)
 
 History matching 没有标准后验那样直接的概率解释，阈值、summary 与 discrepancy scale 都需要科学依据。它提供的是一种更合适的报告粒度：哪些机制已经被数据排除，哪些仍然可行，以及当前模型族在哪些问题上还缺少辨识力。
 
-## 结语：可靠的推断应该知道何时停下
+## 下一步
 
-神经科学一直在探索如何把数据与机制结合起来。黑盒模型擅长从大规模数据中学习复杂映射，机制模型则把离子通道、突触、连接结构和状态转移写进可检验的动力学方程。SBI 位于这两条路线之间：专家知识进入模拟器、参数先验和实验设计，神经密度估计器则利用大量模拟数据完成传统似然方法难以处理的参数反演。
+神经数据建模长期存在两条主要路线。黑盒模型擅长从大规模数据中学习复杂预测映射，但内部变量与生物机制的关系通常需要额外分析；机制模型把离子通道、突触、连接结构和状态转移写进动力学方程，却常常面临似然不可计算、参数不可识别和模拟成本高昂的问题。
 
-距离高噪声、稀疏采样、多时间尺度和多空间尺度的真实神经数据，仍然存在几个关键台阶。模型内部后验、观测误差和模型结构需要分别校准；跨模型参数需要共同的科学定义；多模态数据需要显式的跨尺度生成过程；干预数据需要可靠的作用模型。部分观测导致的机制错配已经说明，单纯提高数据拟合能力不能自动解决这些问题。
+SBI 位于两者之间。专家知识进入模拟器、参数先验、summary 和实验设计；神经密度估计器利用大量模拟数据完成复杂的贝叶斯反演。这种组合让机制先验参与现代数据分析，也让模型输出完整的参数分布，而不只是一组最优拟合值。
 
-接下来的发展可能不会来自某一个更大的 posterior network，而会来自一套更完整的推断过程：用模型族表达动力学假设，用高低保真模拟分配计算预算，用跨模态预测和干预响应检验机制，在证据不足时保留可行区域。
+目前的主要距离出现在真实神经数据的复杂性上。高噪声、稀疏采样、多空间尺度、多时间尺度和患者异质性同时存在。模型内部的参数不确定性、测量不确定性和结构不确定性需要分别表示：
 
-真正值得期待的状态很简单：证据一致时，后验能够合理收缩；模型结构仍然含糊时，不确定性会被保留下来；当前数据尚不足以识别某个机制时，推断结果也能诚实地停在这里。
+{{< math >}}
+\underbrace{p(\epsilon,\eta\mid y)}_{\text{measurement uncertainty}},
+\qquad
+\underbrace{p(\theta\mid y,M)}_{\text{parameter uncertainty}},
+\qquad
+\underbrace{p(M\mid y)}_{\text{structural uncertainty}}.
+{{< /math >}}
 
-### 延伸阅读
+接下来有几项问题尤其值得推进：
+
+- 如何定义能够跨 neural mass、neural field 和 spiking model 保持含义的科学目标？
+- 如何在缺少真实参数标签时，校准模型结构带来的不确定性？
+- 如何建立 EEG、SEEG、fMRI 与微观神经活动之间可检验的跨尺度生成模型？
+- 哪些刺激或实验条件最有助于区分参数变化与结构缺失？
+- 当候选模型持续给出不同机制解释时，推断系统应如何扩大区间、保留多种解释或停止输出点估计？
+
+这些问题可以逐步拆解。受控模型层级先分离 posterior approximation 与 structural misspecification；跨模态和干预数据随后提供外部约束；模型族和 NROY 区域则允许结构分歧进入最终结果。
+
+SBI 已为机制模型与大规模数据建立了很好的接口。下一阶段的重点，是让这个接口同时表达模型知道了什么、依赖了哪些结构假设，以及当前数据还无法区分什么。
+
+## References
 
 1. Cranmer, Brehmer & Louppe. [The frontier of simulation-based inference](https://www.pnas.org/doi/10.1073/pnas.1912789117). *PNAS*, 2020.
 2. Gonçalves et al. [Training deep neural density estimators to identify mechanistic models of neural dynamics](https://elifesciences.org/articles/56261). *eLife*, 2020.
@@ -507,3 +606,8 @@ History matching 没有标准后验那样直接的概率解释，阈值、summar
 19. [Bayesian full waveform inversion with sequential surrogate updates](https://academic.oup.com/gji/article/243/2/ggaf349/8248518). *Geophysical Journal International*, 2025.
 20. Kleinegesse & Gutmann. [Bayesian Experimental Design for Implicit Models by Mutual Information Neural Estimation](https://proceedings.mlr.press/v119/kleinegesse20a.html). *ICML*, 2020.
 21. Williamson et al. [History matching for the NEMO ocean model](https://gmd.copernicus.org/articles/10/1789/2017/). *Geoscientific Model Development*, 2017.
+22. Prinz, Bucher & Marder. [Similar network activity from disparate circuit parameters](https://www.nature.com/articles/nn1352). *Nature Neuroscience*, 2004.
+23. Lemos et al. [Sampling-Based Accuracy Testing of Posterior Estimators for General Inference](https://proceedings.mlr.press/v202/lemos23a.html). *ICML*, 2023.
+24. Hikida et al. [Multilevel neural simulation-based inference](https://arxiv.org/abs/2506.06087), 2025.
+25. Mishra-Sharma. [Program Synthesis for Simulation-Based Inference: Joint Model Selection and Parameter Estimation](https://arxiv.org/abs/2607.17540), 2026.
+26. Kang & Park. [Integration of partially observed multimodal and multiscale neural signals using dynamic causal modeling](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012655). *PLOS Computational Biology*, 2024.

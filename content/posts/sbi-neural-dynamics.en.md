@@ -1,10 +1,10 @@
 ---
-title: "Simulation-Based Inference in Neural Dynamics"
+title: "Structural Misspecification in Neural Simulation-Based Inference"
 date: 2026-08-03
 slug: sbi-neural-dynamics
 translationKey: sbi-neural-dynamics
 math: true
-estimatedReadingTime: "24 min"
+estimatedReadingTime: "20 min"
 tags: ["SBI", "Neural Dynamics", "Bayesian Inference", "Model Misspecification", "Epileptor"]
 categories: ["Research Notes"]
 showToc: true
@@ -14,15 +14,17 @@ disableShare: true
 ShowBreadCrumbs: false
 ---
 
-In many neuroscience problems, we can write down a candidate dynamical model and simulate EEG, SEEG, fMRI or neuronal activity for a chosen set of parameters. What we cannot readily evaluate is the probability of those observations under the parameters. **Simulation-based inference** (SBI) was designed for precisely this setting.
+Simulation-based inference (SBI) addresses a common scientific inverse problem: a model can generate data, but its likelihood cannot be evaluated directly.
 
-SBI offers a bridge between mechanistic modelling and data analysis. The researcher specifies a simulator and parameter prior; a machine-learning model then uses many simulations to learn a posterior over parameters from observations. The appeal is obvious. The difficulty is that neural data come from a high-dimensional, nonlinear and multiscale system, while the simulator used for inference usually preserves only a small part of that structure.
+This setting is widespread in neuroscience. Given ion-channel conductances, synaptic parameters, connectivity or neural-mass parameters, we can simulate membrane potentials, population activity, EEG, SEEG or fMRI. Inferring those parameters in the opposite direction is much harder.
 
-A posterior that performs well on its own simulated data can therefore become too narrow, displaced and scientifically miscalibrated when it meets a real system—or merely a more complete generator.
+SBI provides a clear computational route. Researchers specify a dynamical model and parameter prior; neural networks learn a posterior from many simulations. The framework combines expert knowledge encoded in a mechanistic model with the amortized inference capacity of modern machine learning. [Cranmer, Brehmer and Louppe](https://www.pnas.org/doi/10.1073/pnas.1912789117) provide a broad overview.
 
-![Neural parameter inference under model misspecification](/images/neural-parameter-inference-model-misspecification.png "Figure 1. Neural parameter inference under model misspecification. The real neural system and fitted simulator can differ in dynamical structure, observation scale and noise, even when both produce similar measurements. Generated with GPT Image 2.")
+The difficult step lies between the simulator and the real system. Neural systems have high-dimensional, nonlinear and multiscale dynamics, whereas practical inference usually relies on a lower-dimensional simulator that is computationally tractable. What, then, does its parameter uncertainty actually describe?
 
-## 1. Structural misspecification in neural parameter inversion
+## 1. Simulation-based inference
+
+### Parameter posteriors under a fixed simulator
 
 Given a simulator {{< mi >}}M{{< /mi >}}, standard SBI samples from a parameter prior,
 
@@ -38,7 +40,16 @@ and trains a neural posterior estimator,
 q_\psi(\theta\mid x) \approx p_M(\theta\mid x).
 {{< /math >}}
 
-NPE, NLE, NRE and methods based on flow matching or diffusion all fit within this broad framework. They learn a posterior, likelihood or likelihood ratio, or use a flexible generative process to represent the posterior. SBI has already been used to infer biophysical parameters from membrane potentials, population activity and behaviour, and has become an important way to connect mechanistic models with statistical learning. The [PNAS overview of the field](https://www.pnas.org/doi/10.1073/pnas.1912789117) gives a useful introduction.
+The training set contains many parameter–observation pairs:
+
+{{< math >}}
+\mathcal D_{\rm sim}
+=\left\{(\theta_i,x_i)\right\}_{i=1}^{N}.
+{{< /math >}}
+
+NPE learns the posterior directly, NLE learns the likelihood, NRE learns a likelihood ratio, and FMPE represents the conditional posterior with a continuous normalizing flow trained by flow matching. Their objectives differ, but all solve a Bayesian problem defined by a fixed simulator. SBI has already succeeded in single-neuron and circuit models; [Gonçalves and colleagues](https://elifesciences.org/articles/56261) used SNPE to identify biophysical parameters compatible with experimental neural activity.
+
+### From model parameters to scientific targets
 
 Real inverse problems, however, usually contain two different generative processes:
 
@@ -58,21 +69,45 @@ Standard SBI ultimately returns
 p_M(\theta\mid y),
 {{< /math >}}
 
-whereas the scientific question usually concerns
+whereas the scientific question usually concerns a generator-defined target,
 
 {{< math >}}
-p_G\!\left(g(\phi)\mid y\right).
+p_G\!\left(\phi_{\rm sci}\mid y\right),
+\qquad
+\phi_{\rm sci}=g(\phi).
 {{< /math >}}
 
-The target {{< mi >}}g(\phi){{< /mi >}} might be excitability, a slow recovery timescale, effective coupling, a bifurcation-control parameter or another mechanistic quantity intended to retain meaning across models. The two posteriors can be connected directly only when model structure, parameter semantics and observation processes are sufficiently aligned.
+The target {{< mi >}}\phi_{\rm sci}{{< /mi >}} might be excitability, a slow recovery timescale, synaptic gain, effective coupling or distance to a dynamical boundary. Connecting the two posteriors requires a cross-model map,
 
-### Why neural data are especially vulnerable
+{{< math >}}
+\phi_{\rm sci}=g_M(\theta).
+{{< /math >}}
 
-Parameter degeneracy is common in neural systems. Very different ion-channel densities, synaptic weights and connectivity patterns can produce similar firing patterns or network rhythms. Classic circuit studies have shown that distant regions of parameter space can generate almost indistinguishable functional outputs. Work on [neural density estimation for mechanistic models](https://elifesciences.org/articles/56261) makes this multiplicity particularly visible.
+This map states the scientific meaning assigned to a model parameter. When a model removes state variables, connections or timescales, even an identically named parameter may represent a different effective mechanism.
+
+![Neural parameter inference under model misspecification](/images/neural-parameter-inference-model-misspecification.png "Figure 1. Two generative chains in neural parameter inference. The left side shows the high-dimensional real system, latent brain dynamics and EEG, SEEG and fMRI observations; the right side shows a lower-dimensional fitted simulator and its parameter posterior. The chains may differ in dynamical structure, partial observation, measurement scale and noise. Generated with GPT Image 2.")
+
+### Why neural data are especially difficult
+
+Parameter degeneracy is common in neural systems. Very different ion-channel densities, synaptic weights and connectivity patterns can produce similar firing patterns or network rhythms. The classic study by [Prinz, Bucher and Marder](https://www.nature.com/articles/nn1352) demonstrated this many-parameter, similar-activity relationship in a pyloric circuit.
 
 Partial observation expands the many-to-one mapping. Even modern recording systems sample only a small fraction of the neurons in a real circuit. Recent work shows that a data-constrained surrogate network can reproduce the observed units remarkably well while developing spurious attractors and supporting a false account of the underlying mechanism. [Qian and colleagues' NeurIPS 2024 study](https://proceedings.neurips.cc/paper_files/paper/2024/hash/7caf9d251b546bc78078b35b4a6f3b7e-Abstract-Conference.html) provides a direct example.
 
-EEG, SEEG, MEG and fMRI also impose different observation transformations. Scalp EEG is spatially mixed by volume conduction; SEEG samples sparse, clinically selected locations; fMRI observes neural activity through slow and region-dependent neurovascular coupling. A simulation-to-data gap can therefore arise simultaneously from dynamical structure, spatial scale, temporal scale and sensor physics.
+Neural signals also pass through modality-specific forward problems:
+
+{{< math >}}
+y_k=O_k[z(t);\eta_k]+\epsilon_k.
+{{< /math >}}
+
+For example,
+
+{{< math >}}
+y_{\rm EEG}=O_{\rm leadfield}[z(t)]+\epsilon_{\rm EEG},
+\qquad
+y_{\rm fMRI}=O_{\rm BOLD}[z(t)]+\epsilon_{\rm fMRI}.
+{{< /math >}}
+
+EEG includes volume conduction and spatial mixing; SEEG samples sparse, clinically selected locations; fMRI passes through neurovascular coupling and slow temporal sampling. Dynamical mismatch, observation-operator mismatch and sampling error can therefore enter the same inversion.
 
 > When a fitted model omits part of the real dynamics, how do its remaining parameters absorb the missing mechanism? Does the reported uncertainty still cover the quantity we actually care about?
 
@@ -97,7 +132,7 @@ This representation includes the dynamical simulator {{< mi >}}M{{< /mi >}}, a d
 | Target-domain calibration | Map {{< mi >}}\mathcal T{{< /mi >}} | {{< mi >}}q_{\rm target}=\mathcal T(q_M){{< /mi >}} | RoPE, FRISBI, FMCPE | A few labelled real or high-fidelity pairs |
 | Model structure | Model identity {{< mi >}}m{{< /mi >}} | {{< mi >}}p(m,\theta_m\mid y){{< /mi >}} | Multi-fidelity SBI, model ensembles | Candidate simulators or high-fidelity budget |
 
-### 2.1 Learning and validating a posterior for a fixed simulator
+### Posterior estimation and within-model validation
 
 NPE, NLE and NRE pursue the same core objective: accurately recover the posterior implied by a given model {{< mi >}}M{{< /mi >}}. FMPE represents the conditional posterior with a continuous normalizing flow learned by flow matching, improving scalability to complex data and high-dimensional parameters. The [FMPE paper](https://arxiv.org/abs/2305.17161) describes this estimator in detail.
 
@@ -109,7 +144,7 @@ Simulation-based calibration (SBC) and TARP operate at this level. SBC repeatedl
 x^{(i)}\sim p_M(x\mid\theta^{(i)}),
 {{< /math >}}
 
-then tests whether the generative parameter has the expected rank among posterior samples. TARP uses random reference points to assess the coverage of generative posteriors. Both examine whether
+then tests whether the generative parameter has the expected rank among posterior samples. [TARP](https://arxiv.org/abs/2302.03026) uses random reference points to test the coverage of high-dimensional generative posteriors. Both examine whether
 
 {{< math >}}
 q_\psi(\theta\mid x) \approx p_M(\theta\mid x).
@@ -117,7 +152,7 @@ q_\psi(\theta\mid x) \approx p_M(\theta\mid x).
 
 The training data, test data and calibration truth all come from the same simulator. Once model structure changes, a separate cross-model target and coverage test are required. [SBC](https://arxiv.org/abs/1804.06788) can tell us whether an algorithm is faithful to its model; on its own, it cannot tell us whether the model is faithful to the real system.
 
-### 2.2 Writing the simulation-to-reality gap into the observation model
+### Simulation-to-reality observation error
 
 RNPE introduces an explicit discrepancy model between simulated and real observations. A simplified formulation is
 
@@ -138,7 +173,7 @@ Robust SNL uses adjustment parameters to identify summaries that the model canno
 
 The adaptation remains concentrated in observation space. If omitted dynamics have already been absorbed by fitted parameters, little visible residual may remain between simulated and real observations. A discrepancy model then cannot easily determine whether an observed change came from a true parameter or from a missing state variable.
 
-### 2.3 Changing which features the model must explain
+### Robust statistics and generalized posteriors
 
 Another family of methods changes the information on which inference is based. Robust-statistics SBI learns or selects summaries {{< mi >}}s_\omega(y){{< /mi >}} that remain stable under misspecification and penalizes statistics that amplify the simulation-to-reality gap. A [NeurIPS 2023 study](https://proceedings.neurips.cc/paper_files/paper/2023/hash/16c5b4102a6b6eb061e502ce6736ad8a-Abstract-Conference.html) develops this approach.
 
@@ -163,7 +198,7 @@ The corresponding posterior is defined by the selected summary or cost:
 
 Summary-level robustness, predictive stability and recovery of mechanistic parameters must therefore be tested separately. The information discarded as misspecified may also contain exactly what is needed to distinguish mechanisms.
 
-### 2.4 Calibrating with target-domain or high-fidelity labels
+### Target-domain posterior calibration
 
 RoPE, FRISBI and FMCPE add a new kind of scientific information: a small number of real or high-fidelity parameter–observation pairs. RoPE uses a calibration set
 
@@ -178,7 +213,7 @@ FMCPE first trains an ordinary posterior estimator on many simulations, then use
 
 This route is powerful when real parameter labels or a trusted high-fidelity simulator are available. In robotics, controlled engineering and some physical systems, mass, friction or material properties can be measured directly. Neural mechanism parameters rarely come with such paired truth. We can collect more EEG or SEEG, but usually cannot measure a patient's true slow recovery constant, neuronal excitability or microscopic synaptic coupling at the same time.
 
-### 2.5 Transferring from low- to high-fidelity models
+### Multi-fidelity simulators
 
 Multi-fidelity SBI assumes a related pair of simulators:
 
@@ -189,6 +224,8 @@ x_H\sim p_H(x_H\mid\theta_H).
 {{< /math >}}
 
 MF-NPE pretrains a posterior estimator on many inexpensive low-fidelity simulations, then transfers and corrects it using a limited high-fidelity budget. Recent [multi-fidelity SBI work](https://arxiv.org/html/2502.08416v2) reports substantial efficiency gains for multicompartment neurons and larger spiking networks, with orders-of-magnitude reductions in high-fidelity simulations on some tasks.
+
+[Multilevel neural SBI](https://arxiv.org/abs/2506.06087) instead brings multilevel Monte Carlo ideas into NPE and NLE, combining several fidelity levels under a fixed computational budget.
 
 The method estimates {{< mi >}}p_H(\theta_H\mid y){{< /mi >}}. It assumes that high- and low-fidelity models admit transferable representations, comparable observations and some parameter correspondence. The high-fidelity simulator must still be tested against real data, cross-modal observations and intervention responses.
 
@@ -204,9 +241,35 @@ Together, these methods form a path of increasing information:
 
 Our controlled experiment addresses the final gap. If no real parameter calibration set exists, the fitted model omits part of the dynamics, and observations do not directly expose that structural difference, can within-model calibration still represent mechanistic reliability? Systematic work on [misspecification in neural SBI](https://arxiv.org/abs/2209.01845) has already shown that structural or distributional shifts can severely damage posterior reliability, with no single mitigation succeeding across all test conditions.
 
-## 3. When 90% covers only 55–59%
+## 3. A controlled structural-misspecification experiment
+
+### Two distinct notions of coverage
 
 A nominal 90% posterior credible interval makes a testable repeated-sampling promise. If data are repeatedly drawn from the same generative process and inference is repeated, the true parameter should fall inside the interval in roughly 90% of experiments. Only about 10% should miss.
+
+Let {{< mi >}}C_{0.9}(y){{< /mi >}} denote the 90% posterior interval obtained from {{< mi >}}y{{< /mi >}}. Under the fitted model's own generative distribution, within-model coverage is
+
+{{< math >}}
+\mathrm{CB}_{\rm int}
+=\Pr_M\!\left[\theta\in C_{0.9}(X)\right],
+\quad
+\theta\sim p(\theta),\;X\sim p_M(X\mid\theta).
+{{< /math >}}
+
+Scientific coverage instead uses the more complete generator:
+
+{{< math >}}
+\mathrm{CB}_{\rm sci}
+=\Pr_G\!\left[\phi_{\rm sci}\in C_{0.9}(Y)\right],
+\quad
+\phi\sim p_G(\phi),\;Y\sim p_G(Y\mid\phi).
+{{< /math >}}
+
+{{< mi >}}\mathrm{CB}_{\rm int}{{< /mi >}} measures coverage inside the fitted simulator; {{< mi >}}\mathrm{CB}_{\rm sci}{{< /mi >}} measures coverage of a generator-defined scientific target.
+
+### How many truths does a 90% interval cover?
+
+The controlled experiment used a 2D Epileptor as the fitted simulator and a 6D Epileptor with additional state variables as the generator. Both models share {{< mi >}}x_0{{< /mi >}}, allowing us to test directly whether an interval from the 2D posterior contains the value used by the 6D generator.
 
 In our controlled experiment, RNPE achieved near-nominal coverage within the fitted 2D simulator:
 
@@ -251,7 +314,7 @@ The structural effect is stronger in the basic NPE benchmark. Under matched 2D�
 =-0.35,\,-0.31.
 {{< /math >}}
 
-### How omitted dynamics enter the parameters
+### How omitted dynamics enter the remaining parameters
 
 A simple slow–fast system illustrates the mechanism. Suppose the generating system contains a fast variable {{< mi >}}u{{< /mi >}} and a slow variable {{< mi >}}v{{< /mi >}}:
 
@@ -306,11 +369,13 @@ Our result shows that the first two can hold to a useful degree while the third 
 
 The “90%” printed on a posterior interval is therefore conditional on its model structure and joint distribution. Once structure changes, that number must be retested against a generator-defined scientific target.
 
-## 4. Four routes towards structural adaptation
+> **Section takeaway.** A 90% interval should cover the scientific target in roughly 90% of repeated experiments under the generating system. Under 6D→2D mismatch it covered only 55–59%, making the empirical miss rate 4.1–4.5 times nominal. The core failure is not a total loss of prediction, but a disconnect between posterior width and structural error.
+
+## 4. Routes towards structural adaptation
 
 Once model structure becomes part of the error, inference must accommodate multiple possible data-generating mechanisms. Recent work is beginning to move through model families, multi-fidelity simulation, cross-scale observation and active intervention. These routes still face computational and identifiability limits, but they provide a broader response than correcting a single posterior.
 
-### 4.1 Put model structure into the posterior
+### Put model structure into the posterior
 
 The most direct extension replaces a fixed simulator {{< mi >}}M{{< /mi >}} with a family:
 
@@ -344,11 +409,19 @@ In neural dynamics, 2D, 5D and 6D Epileptor variants could form a nested family.
 
 Multi-fidelity SBI has taken one step in this direction. Weather and climate science have also long used ensembles with different parameterizations, resolutions and structural errors, dynamically reweighting their predictive contributions. A [multi-model ensemble Kalman filter](https://arxiv.org/abs/2202.02272) offers one relevant example.
 
-Model families may eventually move beyond expert enumeration. Recent work treats executable mechanistic models as particles, uses language models to propose or edit candidate programs, and weights them by approximate marginal likelihood. Program-synthesis SBI similarly generates candidate simulators and uses neural ratio estimation to compare evidence and infer parameters. [A probabilistic framework for LLM-based model discovery](https://arxiv.org/html/2602.18266v2) illustrates this direction. NPE-PFN, meanwhile, uses a pretrained conditional density estimator to reduce the architecture selection and tuning required for each candidate simulator. See the [NPE-PFN preprint](https://arxiv.org/html/2504.17660v2).
+Model families may eventually move beyond expert enumeration. [ModelSMC](https://arxiv.org/abs/2602.18266) represents executable mechanistic models as weighted particles, uses a language model to propose and edit candidates, and updates their weights with likelihood-based criteria:
+
+{{< math >}}
+m_k'\sim q_{\rm LLM}(m\mid m_k,\mathcal D),
+\qquad
+w_k\propto p(\mathcal D\mid m_k).
+{{< /math >}}
+
+[Program-synthesis SBI](https://arxiv.org/abs/2607.17540) takes a related approach, using an LLM to propose simulator structures and neural simulation-based inference for joint model selection and parameter estimation. NPE-PFN, meanwhile, uses a pretrained conditional density estimator to reduce architecture selection and tuning for each candidate simulator. See the [NPE-PFN preprint](https://arxiv.org/abs/2504.17660).
 
 The hard problem remains the model space itself. Candidate families must cover structural differences that matter for the scientific target; parameters need defensible shared semantics; and marginal likelihood is sensitive to model priors, parameter priors and program complexity. For near-term neuroscience, an expert-defined family containing a small number of consequential mechanistic alternatives may be more useful than unrestricted equation search.
 
-### 4.2 Make observations at different scales check one another
+### Make cross-scale observations check one another
 
 Neural modalities can be written as projections of the same latent system at different scales:
 
@@ -362,7 +435,7 @@ y_k=O_k\!\left[z_{\ell(k)};\eta_k\right]+\epsilon_k.
 
 The maps {{< mi >}}C_1{{< /mi >}} and {{< mi >}}C_2{{< /mi >}} describe coarse-graining from microscopic activity to macroscopic state, while {{< mi >}}O_k{{< /mi >}} is a modality-specific observation operator. SEEG, scalp EEG and fMRI observe local electrical activity, spatially mixed fields and slow BOLD dynamics coupled through neurovascular processes.
 
-Multimodal DCM has used shared neural state equations with modality-specific observation models to connect EEG/MEG and fMRI. Other frameworks are beginning to combine partially observed, multiscale neural signals. A [comparison of DCMs for neurovascular coupling](https://pmc.ncbi.nlm.nih.gov/articles/PMC7322559/) shows why the observation layer must remain explicit. Patient-specific virtual brain twins now combine structural connectivity, SEEG, scalp EEG and stimulation-evoked activity to constrain epileptogenic networks. [Virtual brain twins for epilepsy stimulation](https://www.nature.com/articles/s43588-025-00841-6) are a recent example.
+Multimodal DCM has used shared neural state equations with modality-specific observation models to connect EEG/MEG and fMRI. More recent [multiscale DCM](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012655) experiments integrate local high-resolution signals with global low-resolution observations. Patient-specific virtual brain twins now combine structural connectivity, SEEG, scalp EEG and stimulation-evoked activity to constrain epileptogenic networks. [Virtual brain twins for epilepsy stimulation](https://www.nature.com/articles/s43588-025-00841-6) are a recent example.
 
 For modality {{< mi >}}k{{< /mi >}}, define the set of mechanisms compatible with its data:
 
@@ -395,7 +468,7 @@ Inference uses a subset of modalities, then predicts another observation that pl
 
 Cross-scale mappings can themselves introduce mismatch. Concatenating features into one encoder risks hiding coarse-graining, volume-conduction and neurovascular errors in a shared latent vector. Coarse-to-fine full-waveform inversion in geophysics offers a more disciplined organization: low-frequency data first narrow the high-probability region, then higher-frequency data and local surrogate updates add detail. [Sequential surrogate work in full-waveform inversion](https://academic.oup.com/gji/article/243/2/ggaf349/8248518) provides one analogy.
 
-### 4.3 Use interventions to expose differences hidden in passive data
+### Use interventions to distinguish observationally similar mechanisms
 
 Two mechanisms may generate almost identical spontaneous observations:
 
@@ -412,6 +485,14 @@ p(y^{(a)}\mid\phi_2,m_2,a).
 {{< /math >}}
 
 Interventions directionally excite the dynamics. Two models may both explain a resting power spectrum yet predict different propagation directions, resonance frequencies, recovery times or seizure thresholds after stimulation.
+
+Across several experimental conditions,
+
+{{< math >}}
+p(\phi,m\mid y^{(1:A)},a^{(1:A)})
+\propto p(\phi,m)
+\prod_{j=1}^{A}p\!\left(y^{(j)}\mid\phi,m,a^{(j)}\right).
+{{< /math >}}
 
 Bayesian experimental design can select conditions that best distinguish parameters and models:
 
@@ -436,7 +517,7 @@ D\!\left[p(Y\mid a,m_1),\ldots,p(Y\mid a,m_K)\right].
 
 Intervention then serves two purposes: narrowing parameter uncertainty and rejecting dynamical structures that cannot explain the new response.
 
-### 4.4 Preserve a viable region when evidence remains limited
+### Preserve mechanisms that have not yet been ruled out
 
 Even after model families, multimodal observations and interventions are added, some mechanisms may remain non-identifiable. History matching in climate and ocean modelling offers a useful language for this situation. Instead of forcing a single best parameter, it iteratively rules out implausible regions while preserving those that current evidence has not excluded.
 
@@ -474,17 +555,35 @@ This is the region of scientific targets compatible with the current model famil
 
 History matching does not have the direct probability interpretation of a standard posterior; its thresholds, summaries and discrepancy scales require scientific justification. What it offers is a more appropriate reporting resolution: which mechanisms have been excluded, which remain viable, and where the current model family still lacks identifiability.
 
-## Conclusion: reliable inference should know when to stop
+## Next steps
 
-Neuroscience has long tried to connect data with mechanism. Black-box models learn complex mappings from large datasets; mechanistic models place ion channels, synapses, connectivity and state transitions into testable dynamical equations. SBI sits between them. Expert knowledge enters through the simulator, prior and experimental design, while neural density estimators perform parameter inversion where conventional likelihood methods struggle.
+Neural data modelling has long followed two broad routes. Black-box models learn complex predictive mappings from large datasets, but their internal variables require additional work to connect with biological mechanisms. Mechanistic models encode ion channels, synapses, connectivity and state transitions in dynamical equations, but often face intractable likelihoods, non-identifiable parameters and high simulation costs.
 
-Several steps still separate this promise from noisy, sparsely sampled and multiscale neural data. Within-model posteriors, observation discrepancy and model structure must be calibrated separately. Parameters need shared scientific definitions across models. Multimodal data need an explicit cross-scale generative process. Interventions need a credible action model. Mechanistic mismatch under partial observation already shows that better data fit does not automatically resolve these problems.
+SBI lies between these routes. Expert knowledge enters through the simulator, parameter prior, summary statistics and experimental design; neural density estimators use simulations to perform complex Bayesian inversion. This combination lets mechanistic assumptions participate in modern data analysis and returns parameter distributions rather than a single optimum.
 
-The next advance may not come from one larger posterior network. It may come from a more complete inference process: model families that express dynamical alternatives, multi-fidelity simulators that allocate computation, cross-modal predictions and intervention responses that test mechanisms, and viable regions that remain wide when the evidence is weak.
+The main distance to real neural data lies in their simultaneous noise, sparse sampling, multiple spatial and temporal scales, and patient heterogeneity. Measurement, parameter and structural uncertainty should be represented separately:
 
-The goal is simple to state. When evidence agrees, the posterior should contract appropriately. When model structure remains ambiguous, uncertainty should remain visible. And when current data cannot identify a mechanism, the inference should be able to stop there honestly.
+{{< math >}}
+\underbrace{p(\epsilon,\eta\mid y)}_{\text{measurement uncertainty}},
+\qquad
+\underbrace{p(\theta\mid y,M)}_{\text{parameter uncertainty}},
+\qquad
+\underbrace{p(M\mid y)}_{\text{structural uncertainty}}.
+{{< /math >}}
 
-### Further reading
+Several questions are especially important:
+
+- How can scientific targets retain meaning across neural-mass, neural-field and spiking models?
+- How can structural uncertainty be calibrated when real parameter labels do not exist?
+- What testable generative models can connect EEG, SEEG and fMRI with microscopic neural activity?
+- Which interventions best separate parameter variation from omitted structure?
+- When candidate models continue to imply different mechanisms, how should an inference system widen intervals, preserve several explanations or abstain from point estimates?
+
+These problems can be addressed in stages. Controlled model hierarchies first separate posterior approximation from structural misspecification. Cross-modal and intervention data then provide external constraints. Model families and NROY regions allow persistent structural disagreement to remain in the reported result.
+
+SBI already provides a strong interface between mechanistic models and large datasets. The next step is to make that interface express what the model has learned, which structural assumptions it depends on, and what the current data still cannot distinguish.
+
+## References
 
 1. Cranmer, Brehmer & Louppe. [The frontier of simulation-based inference](https://www.pnas.org/doi/10.1073/pnas.1912789117). *PNAS*, 2020.
 2. Gonçalves et al. [Training deep neural density estimators to identify mechanistic models of neural dynamics](https://elifesciences.org/articles/56261). *eLife*, 2020.
@@ -507,3 +606,8 @@ The goal is simple to state. When evidence agrees, the posterior should contract
 19. [Bayesian full waveform inversion with sequential surrogate updates](https://academic.oup.com/gji/article/243/2/ggaf349/8248518). *Geophysical Journal International*, 2025.
 20. Kleinegesse & Gutmann. [Bayesian Experimental Design for Implicit Models by Mutual Information Neural Estimation](https://proceedings.mlr.press/v119/kleinegesse20a.html). *ICML*, 2020.
 21. Williamson et al. [History matching for the NEMO ocean model](https://gmd.copernicus.org/articles/10/1789/2017/). *Geoscientific Model Development*, 2017.
+22. Prinz, Bucher & Marder. [Similar network activity from disparate circuit parameters](https://www.nature.com/articles/nn1352). *Nature Neuroscience*, 2004.
+23. Lemos et al. [Sampling-Based Accuracy Testing of Posterior Estimators for General Inference](https://proceedings.mlr.press/v202/lemos23a.html). *ICML*, 2023.
+24. Hikida et al. [Multilevel neural simulation-based inference](https://arxiv.org/abs/2506.06087), 2025.
+25. Mishra-Sharma. [Program Synthesis for Simulation-Based Inference: Joint Model Selection and Parameter Estimation](https://arxiv.org/abs/2607.17540), 2026.
+26. Kang & Park. [Integration of partially observed multimodal and multiscale neural signals using dynamic causal modeling](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1012655). *PLOS Computational Biology*, 2024.
