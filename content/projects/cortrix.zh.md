@@ -1,5 +1,5 @@
 ---
-title: "多模态神经数据怎样组成同一位患者？"
+title: "Cortrix：让多模态神经数据在同一个患者空间中相遇"
 date: 2026-08-02
 slug: cortrix
 translationKey: cortrix

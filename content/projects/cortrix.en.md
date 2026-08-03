@@ -1,5 +1,5 @@
 ---
-title: "How do multimodal neural data become one patient?"
+title: "Cortrix: Bringing Multimodal Neural Data into One Patient Space"
 date: 2026-08-02
 slug: cortrix
 translationKey: cortrix
