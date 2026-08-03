@@ -39,7 +39,7 @@
 每次发布必须完成以下检查，不能只看 Markdown 源码：
 
 1. `python3 scripts/check_i18n.py` 通过。
-2. 使用线上 CI 相同版本的 Hugo 完成 production build，且 `git diff --check` 通过。
+2. 使用线上 CI 相同版本的 Hugo 完成 production build，且 `git diff --check` 通过。dirty worktree 中的未提交文件可能掩盖部署缺陷；推送前必须额外从暂存区或待提交 commit 的干净快照构建并检查生成的 HTML。
 3. 在真实浏览器中检查英文和中文页面、桌面和 390 px 手机宽度。
 4. 浏览器中 `mjx-merror` 必须为 0。
 5. `mjx-container` 总数必须等于文章中 `mi` 与 `math` shortcode 的总数；展示公式数必须等于 `math` shortcode 数。
