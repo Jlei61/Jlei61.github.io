@@ -50,6 +50,8 @@ params:
       url: "https://twitter.com/JayLei61"
     - name: github
       url: "https://github.com/Jlei61"
+    - name: email
+      url: "mailto:leijiaxin61@gmail.com"
 
   cover:
     hidden: true
